@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+  Design System: Elegant Restaurant Menu
+  Typography: Playfair Display (serif) for headings, Inter (sans) for body
+  Colors: Warm cream backgrounds, terracotta accent, olive secondary
+*/
+
+@layer base {
+  :root {
+    /* Background & Foreground */
+    --background: 40 33% 97%;
+    --foreground: 30 10% 15%;
+
+    /* Cards & Surfaces */
+    --card: 40 40% 99%;
+    --card-foreground: 30 10% 15%;
+
+    /* Popovers */
+    --popover: 40 40% 99%;
+    --popover-foreground: 30 10% 15%;
+
+    /* Primary: Terracotta */
+    --primary: 18 55% 53%;
+    --primary-foreground: 40 33% 97%;
+
+    /* Secondary: Warm Gray */
+    --secondary: 35 20% 90%;
+    --secondary-foreground: 30 10% 25%;
+
+    /* Muted */
+    --muted: 35 15% 92%;
+    --muted-foreground: 30 8% 45%;
+
+    /* Accent: Olive Green */
+    --accent: 85 25% 35%;
+    --accent-foreground: 40 33% 97%;
+
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders & Inputs */
+    --border: 35 20% 88%;
+    --input: 35 20% 88%;
+    --ring: 18 55% 53%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar */
+    --sidebar-background: 35 25% 96%;
+    --sidebar-foreground: 30 10% 25%;
+    --sidebar-primary: 18 55% 53%;
+    --sidebar-primary-foreground: 40 33% 97%;
+    --sidebar-accent: 35 20% 92%;
+    --sidebar-accent-foreground: 30 10% 25%;
+    --sidebar-border: 35 20% 88%;
+    --sidebar-ring: 18 55% 53%;
+
+    /* Custom Design Tokens */
+    --font-serif: 'Playfair Display', serif;
+    --font-sans: 'Inter', sans-serif;
+    
+    /* Gradients */
+    --gradient-warm: linear-gradient(135deg, hsl(40 33% 97%) 0%, hsl(35 25% 94%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(40 40% 99%) 0%, hsl(35 25% 96%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(18 55% 53%) 0%, hsl(25 60% 45%) 100%);
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(30 10% 15% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(30 10% 15% / 0.08), 0 2px 4px -2px hsl(30 10% 15% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(30 10% 15% / 0.08), 0 4px 6px -4px hsl(30 10% 15% / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(30 10% 15% / 0.08), 0 8px 10px -6px hsl(30 10% 15% / 0.05);
+    --shadow-glow: 0 0 20px hsl(18 55% 53% / 0.15);
+  }
+
+  .dark {
+    --background: 30 15% 10%;
+    --foreground: 40 20% 95%;
+
+    --card: 30 15% 12%;
+    --card-foreground: 40 20% 95%;
+
+    --popover: 30 15% 12%;
+    --popover-foreground: 40 20% 95%;
+
+    --primary: 18 55% 58%;
+    --primary-foreground: 30 15% 10%;
+
+    --secondary: 30 12% 20%;
+    --secondary-foreground: 40 20% 90%;
+
+    --muted: 30 12% 18%;
+    --muted-foreground: 35 15% 60%;
+
+    --accent: 85 30% 45%;
+    --accent-foreground: 40 20% 95%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 12% 20%;
+    --input: 30 12% 20%;
+    --ring: 18 55% 58%;
+
+    --sidebar-background: 30 15% 8%;
+    --sidebar-foreground: 40 20% 90%;
+    --sidebar-primary: 18 55% 58%;
+    --sidebar-primary-foreground: 30 15% 10%;
+    --sidebar-accent: 30 12% 15%;
+    --sidebar-accent-foreground: 40 20% 90%;
+    --sidebar-border: 30 12% 18%;
+    --sidebar-ring: 18 55% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    @apply font-medium tracking-tight;
+  }
+}
+
+@layer components {
+  .menu-card {
+    @apply bg-card rounded-xl border border-border/50 overflow-hidden;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+  }
+  
+  .menu-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground font-medium px-6 py-3 rounded-lg;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary:hover {
+    @apply opacity-90;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  .section-title {
+    font-family: var(--font-serif);
+    @apply text-2xl md:text-3xl font-semibold text-foreground;
+  }
+
+  .price-tag {
+    font-family: var(--font-serif);
+    @apply text-primary font-semibold;
+  }
+
+  .glass-effect {
+    @apply backdrop-blur-md bg-background/80 border border-border/30;
+  }
+}
