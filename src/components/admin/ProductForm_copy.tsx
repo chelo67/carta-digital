@@ -4,13 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ImageUpload } from './ImageUpload';
 import { Product, Category } from '@/lib/types';
 
 interface ProductFormProps {
   product?: Product;
   categories: Category[];
-  restaurantId: string;
   onSubmit: (data: {
     name: string;
     category_id: string;
@@ -22,7 +20,7 @@ interface ProductFormProps {
   onCancel: () => void;
 }
 
-export function ProductForm({ product, categories, restaurantId, onSubmit, onCancel }: ProductFormProps) {
+export function ProductForm({ product, categories, onSubmit, onCancel }: ProductFormProps) {
   const [name, setName] = useState(product?.name || '');
   const [categoryId, setCategoryId] = useState(product?.category_id || '');
   const [price, setPrice] = useState(product?.price?.toString() || '');
@@ -94,13 +92,17 @@ export function ProductForm({ product, categories, restaurantId, onSubmit, onCan
           />
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="imageUrl">URL de Imagen (opcional)</Label>
+          <Input
+            id="imageUrl"
+            type="url"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="https://..."
+          />
+        </div>
       </div>
-
-      <ImageUpload
-        value={imageUrl}
-        onChange={setImageUrl}
-        restaurantId={restaurantId}
-      />
 
       <div className="space-y-2">
         <Label htmlFor="description">Descripción (opcional)</Label>
