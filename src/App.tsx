@@ -13,6 +13,7 @@ import Products from "./pages/admin/Products";
 import Templates from "./pages/admin/Templates";
 import PublicMenu from "./pages/PublicMenu";
 import NotFound from "./pages/NotFound";
+import NoAccess from "./pages/no-access";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/no-access" element={<NoAccess />} />
             <Route path="/register" element={<Register />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/categories" element={<Categories />} />

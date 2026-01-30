@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FolderOpen, UtensilsCrossed, Eye, QrCode, Download } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { supabase } from '@/integrations/supabase/client'
 
 //PROBAR
 import { supabase } from '@/integrations/supabase/client'
@@ -45,10 +46,31 @@ export default function AdminDashboard() {
     : '';
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login');
+  if (authLoading) return;
+
+  if (!user) {
+    navigate('/login');
+    return;
+  }
+
+  const checkPurchase = async () => {
+    const { data, error } = await supabase
+      .from('purchases')
+      .select('id')
+      .eq('email', user.email)
+      .eq('product', 'carta_digital')
+      .eq('status', 'active')
+      .gt('expires_at', new Date().toISOString())
+      .single();
+
+    if (error || !data) {
+      navigate('/no-access');
     }
-  }, [user, authLoading, navigate]);
+  };
+
+  checkPurchase();
+}, [user, authLoading, navigate]);
+
 
 
   if (authLoading || restaurantLoading) {
