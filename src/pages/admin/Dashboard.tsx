@@ -53,6 +53,43 @@ export default function AdminDashboard() {
     return;
   }
 
+  const ensureRestaurantExists = async () => {
+  if (!user) return
+
+  // 1️⃣ Buscar restaurant existente
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (restaurant) return
+
+  // 2️⃣ Buscar compra válida
+  const { data: purchase } = await supabase
+    .from('purchases')
+    .select('*')
+    .eq('email', user.email)
+    .eq('product', 'carta_digital')
+    .eq('status', 'completed')
+    .maybeSingle()
+
+  if (!purchase) return
+
+  // 3️⃣ Crear restaurant
+  await supabase.from('restaurants').insert({
+    user_id: user.id,
+    name: 'Mi restaurante',
+  })
+}
+
+useEffect(() => {
+  if (user) {
+    ensureRestaurantExists()
+  }
+}, [user])
+
+
   const checkPurchase = async () => {
     const { data, error } = await supabase
       .from('purchases')
