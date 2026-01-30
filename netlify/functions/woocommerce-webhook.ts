@@ -1,3 +1,4 @@
+import { Handler } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -5,90 +6,99 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function handler(event: any) {
-  try {
-    if (event.httpMethod !== 'POST') {
-      return { statusCode: 405, body: 'Method Not Allowed' }
-    }
+export const handler: Handler = async (event) => {
+  console.log('=== WEBHOOK RECIBIDO ===')
+  console.log('Method:', event.httpMethod)
+  console.log('Headers:', event.headers)
+  console.log('Body RAW:', event.body)
 
-    const body = JSON.parse(event.body)
+  // 🔐 Woo valida el endpoint con requests NO JSON
+  const contentType = event.headers['content-type'] || ''
 
-    console.log('Order ID:', body.id)
-    console.log('Order status:', body.status)
-
-    // 👉 Solo pedidos COMPLETED
-    if (body.status !== 'completed') {
-      return {
-        statusCode: 200,
-        body: 'Ignored (order not completed)',
-      }
-    }
-
-    const email = body.billing?.email
-    const orderId = body.id
-    const lineItems = body.line_items || []
-
-    if (!email || !orderId) {
-      console.error('Missing email or order ID')
-      return { statusCode: 400, body: 'Invalid payload' }
-    }
-
-    // 👉 Detectar compra de carta digital
-    const hasCartaDigital = lineItems.some((item: any) =>
-      item.name?.toLowerCase().includes('carta')
-    )
-
-    if (!hasCartaDigital) {
-      console.log('Order does not include carta digital')
-      return {
-        statusCode: 200,
-        body: 'No carta digital product',
-      }
-    }
-
-    // 👉 Evitar duplicados
-    const { data: existing } = await supabase
-      .from('purchases')
-      .select('id')
-      .eq('order_id', orderId)
-      .single()
-
-    if (existing) {
-      console.log('Purchase already exists')
-      return {
-        statusCode: 200,
-        body: 'Already processed',
-      }
-    }
-
-    // 👉 Expiración (1 año)
-    const expiresAt = new Date()
-    expiresAt.setFullYear(expiresAt.getFullYear() + 1)
-
-    const { error } = await supabase.from('purchases').insert({
-      email,
-      product: 'carta_digital',
-      order_id: orderId,
-      status: 'active',
-      expires_at: expiresAt.toISOString(),
-    })
-
-    if (error) {
-      console.error('Supabase insert error:', error)
-      return { statusCode: 500, body: 'DB error' }
-    }
-
-    console.log('Purchase created for', email)
-
+  if (!contentType.includes('application/json')) {
+    console.log('Request no JSON, ignorado (handshake WooCommerce)')
     return {
       statusCode: 200,
       body: 'OK',
     }
-  } catch (err) {
-    console.error('Webhook error:', err)
+  }
+
+let payload: any = null;
+
+try {
+  const contentType = event.headers['content-type'] || event.headers['Content-Type'];
+
+  if (contentType?.includes('application/json') && event.body) {
+    payload = JSON.parse(event.body);
+  } else {
+    console.log('Webhook no JSON (verificación Woo)', event.body);
     return {
-      statusCode: 500,
-      body: 'Server error',
+      statusCode: 200,
+      body: 'OK',
+    };
+  }
+} catch (err) {
+  console.error('Error parseando JSON', err);
+  return {
+    statusCode: 200,
+    body: 'OK',
+  };
+}
+
+
+  // 🛑 Solo nos importa cuando el pedido está COMPLETADO
+  if (payload.status !== 'completed') {
+    console.log(`Pedido ignorado. Status: ${payload.status}`)
+    return {
+      statusCode: 200,
+      body: 'OK',
     }
+  }
+
+  const email = payload.billing?.email
+  const orderId = payload.id
+
+  // 🛑 Seguridad mínima
+  if (!email || !orderId) {
+    console.log('Pedido incompleto, ignorado')
+    return {
+      statusCode: 200,
+      body: 'OK',
+    }
+  }
+
+  // 🎯 Detectar producto CARTA DIGITAL
+  const hasCartaDigital = payload.line_items?.some(
+    (item: any) =>
+      item.name?.toLowerCase().includes('carta') ||
+      item.sku === 'carta_digital'
+  )
+
+  if (!hasCartaDigital) {
+    console.log('Pedido sin carta digital, ignorado')
+    return {
+      statusCode: 200,
+      body: 'OK',
+    }
+  }
+
+  // 🧠 Insertar / actualizar compra
+  const { error } = await supabase.from('purchases').upsert({
+    email,
+    order_id: orderId,
+    product: 'carta_digital',
+    status: 'active',
+    created_at: new Date().toISOString(),
+  })
+
+  if (error) {
+    console.error('Error Supabase:', error)
+  } else {
+    console.log('Compra carta digital registrada correctamente')
+  }
+
+  return {
+    statusCode: 200,
+    body: 'OK',
   }
 }
