@@ -11,8 +11,6 @@ import { FolderOpen, UtensilsCrossed, Eye, QrCode, Download } from 'lucide-react
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '@/integrations/supabase/client'
 
-/* ================= UTILIDADES ================= */
-
 function getPublicOrigin() {
   const host = window.location.host
   if (host.endsWith('.lovableproject.com')) {
@@ -24,15 +22,14 @@ function getPublicOrigin() {
 
 function ensureHttps(url: string) {
   if (!url) return url
-  return /^https?:\/\//i.test(url) ? url : `https://${url.replace(/^\/\//, '')}`
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`
 }
-
-/* ================= COMPONENTE ================= */
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const { user, loading: authLoading } = useAuth()
   const { restaurant, loading: restaurantLoading } = useRestaurant()
+
   const { categories } = useCategories(restaurant?.id)
   const { products } = useProducts(restaurant?.id)
 
@@ -40,24 +37,31 @@ export default function AdminDashboard() {
     ? ensureHttps(new URL(`/menu/${restaurant.id}`, getPublicOrigin()).toString())
     : ''
 
+  // 🔐 Auth guard
   useEffect(() => {
     if (authLoading) return
+    if (!user) navigate('/login')
+  }, [user, authLoading, navigate])
 
-    if (!user) {
-      navigate('/login')
-      return
-    }
+  // 🏪 Crear restaurant si hay compra válida
+  useEffect(() => {
+    if (!user) return
 
-    const init = async () => {
-      /* ================= VALIDAR COMPRA ================= */
+    const run = async () => {
+      const { data: existing } = await supabase
+        .from('restaurants')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (existing) return
 
       const { data: purchase } = await supabase
         .from('purchases')
-        .select('id, expires_at')
+        .select('id')
         .eq('email', user.email)
         .eq('product', 'carta_digital')
-        .eq('status', 'active')
-        .gt('expires_at', new Date().toISOString())
+        .eq('status', 'completed')
         .maybeSingle()
 
       if (!purchase) {
@@ -65,197 +69,79 @@ export default function AdminDashboard() {
         return
       }
 
-      /* ================= CREAR RESTAURANTE SI NO EXISTE ================= */
-
-      const { data: existingRestaurant } = await supabase
-        .from('restaurants')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (!existingRestaurant) {
-        await supabase.from('restaurants').insert({
-          user_id: user.id,
-          name: 'Mi restaurante',
-        })
-      }
+      await supabase.from('restaurants').insert({
+        user_id: user.id,
+        name: 'Mi restaurante',
+      })
     }
 
-    init()
-  }, [user, authLoading, navigate])
-
-  /* ================= LOADING ================= */
+    run()
+  }, [user, navigate])
 
   if (authLoading || restaurantLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Cargando...</div>
+        <div className="animate-pulse text-muted-foreground">Cargando…</div>
       </div>
     )
   }
-
-  /* ================= STATS ================= */
 
   const stats = [
     {
       title: 'Categorías',
       value: categories.length,
       icon: FolderOpen,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
     },
     {
       title: 'Productos',
       value: products.length,
       icon: UtensilsCrossed,
-      color: 'text-primary',
-      bg: 'bg-primary/10',
     },
     {
       title: 'Plantilla',
-      value: restaurant?.selected_template?.replace('_', ' ') || 'No seleccionada',
+      value: restaurant?.selected_template ?? 'No seleccionada',
       icon: Eye,
-      color: 'text-accent',
-      bg: 'bg-accent/10',
     },
   ]
 
-  /* ================= UI ================= */
-
   return (
     <AdminLayout>
-      <div className="space-y-6 animate-fade-in">
-        {/* Welcome */}
-        <div>
-          <h2 className="font-serif text-2xl font-semibold text-foreground">
-            ¡Hola, {restaurant?.name}!
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Gestiona tu menú digital desde aquí
-          </p>
-        </div>
+      <div className="space-y-6">
+        <h2 className="text-2xl font-semibold">
+          ¡Hola, {restaurant?.name}!
+        </h2>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {stats.map(stat => (
-            <Card key={stat.title}>
-              <CardContent className="p-5">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center`}>
-                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-xl font-semibold text-foreground capitalize">
-                      {stat.value}
-                    </p>
-                  </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          {stats.map((s) => (
+            <Card key={s.title}>
+              <CardContent className="p-5 flex gap-4 items-center">
+                <s.icon />
+                <div>
+                  <p className="text-sm text-muted-foreground">{s.title}</p>
+                  <p className="text-xl font-semibold">{s.value}</p>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* QR */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-serif">
-              <QrCode className="w-5 h-5 text-primary" />
-              Código QR de tu Menú
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              Escanea o descarga este código QR para compartir tu menú:
-            </p>
-
-            {restaurant && (
-              <div className="flex flex-col md:flex-row items-center gap-6">
-                <div className="p-4 bg-background rounded-xl shadow-sm border border-border">
-                  <QRCodeSVG
-                    id="qr-code"
-                    value={menuUrl}
-                    size={240}
-                    level="H"
-                    includeMargin
-                    bgColor="#ffffff"
-                    fgColor="#000000"
-                  />
-                </div>
-
-                <div className="flex-1 space-y-4">
-                  <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Enlace del menú:
-                    </p>
-                    <code className="text-sm break-all text-foreground">
-                      {menuUrl}
-                    </code>
-                  </div>
-
-                  <Button
-                    onClick={() => {
-                      const svg = document.getElementById('qr-code')
-                      if (!svg) return
-
-                      const svgData = new XMLSerializer().serializeToString(svg)
-                      const canvas = document.createElement('canvas')
-                      const ctx = canvas.getContext('2d')
-                      const img = new Image()
-
-                      img.onload = () => {
-                        canvas.width = img.width
-                        canvas.height = img.height
-                        ctx?.drawImage(img, 0, 0)
-                        const png = canvas.toDataURL('image/png')
-                        const link = document.createElement('a')
-                        link.download = `qr-menu-${restaurant.name}.png`
-                        link.href = png
-                        link.click()
-                      }
-
-                      img.src = 'data:image/svg+xml;base64,' + btoa(svgData)
-                    }}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Descargar QR
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Acciones rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card
-            className="cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => navigate('/admin/products')}
-          >
-            <CardContent className="p-5">
-              <h3 className="font-serif font-medium text-lg mb-2">
-                Agregar Producto
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Añade nuevos platillos a tu menú
-              </p>
+        {restaurant && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex gap-2">
+                <QrCode /> Código QR
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex gap-6 flex-col md:flex-row">
+              <QRCodeSVG value={menuUrl} size={220} />
+              <Button
+                onClick={() => window.open(menuUrl, '_blank')}
+              >
+                Ver menú
+              </Button>
             </CardContent>
           </Card>
-
-          <Card
-            className="cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => navigate('/admin/templates')}
-          >
-            <CardContent className="p-5">
-              <h3 className="font-serif font-medium text-lg mb-2">
-                Cambiar Plantilla
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Personaliza el diseño de tu menú
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        )}
       </div>
     </AdminLayout>
   )
