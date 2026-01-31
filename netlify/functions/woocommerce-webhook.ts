@@ -64,13 +64,16 @@ export const handler: Handler = async (event) => {
    * 5️⃣ Solo pedidos COMPLETADOS
    * =====================================
    */
-  if (payload.status !== 'completed') {
-    console.log('Pedido ignorado. Status:', payload.status)
-    return {
-      statusCode: 200,
-      body: 'OK',
-    }
+  const allowedStatuses = ['completed', 'processing']
+
+if (!allowedStatuses.includes(payload.status)) {
+  console.log('Pedido ignorado. Status:', payload.status)
+  return {
+    statusCode: 200,
+    body: 'OK',
   }
+}
+
 
   /**
    * =====================================
@@ -115,7 +118,7 @@ export const handler: Handler = async (event) => {
    */
   const { data: users, error: listError } =
     await supabase.auth.admin.listUsers({
-      email: customerEmail,
+      mail: customerEmail,
     })
 
   if (listError) {
