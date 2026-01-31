@@ -101,4 +101,30 @@ try {
     statusCode: 200,
     body: 'OK',
   }
+
+  
+}
+
+// 1️⃣ Buscar usuario por email
+const { data: users, error: userError } =
+  await supabase.auth.admin.listUsers({
+    email: customerEmail,
+  })
+
+if (userError) {
+  console.error('Error buscando usuario:', userError)
+}
+
+const user = users?.users?.[0]
+
+if (user && !user.email_confirmed_at) {
+  // 2️⃣ Confirmar email automáticamente
+  const { error: confirmError } =
+    await supabase.auth.admin.updateUserById(user.id, {
+      email_confirmed_at: new Date().toISOString(),
+    })
+
+  if (confirmError) {
+    console.error('Error confirmando email:', confirmError)
+  }
 }
