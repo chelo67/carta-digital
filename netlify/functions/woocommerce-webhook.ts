@@ -119,7 +119,7 @@ if (!allowedStatuses.includes(payload.status)) {
    */
   const { data: users, error: listError } =
     await supabase.auth.admin.listUsers({
-      mail: customerEmail,
+      email: customerEmail,
     })
 
   if (listError) {
@@ -176,7 +176,7 @@ if (!allowedStatuses.includes(payload.status)) {
       throw authError
     }
 
-    const userId =
+    userId =
       authUser?.user?.id ??
       (
         await supabase.auth.admin.getUserByEmail(email)
