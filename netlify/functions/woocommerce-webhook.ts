@@ -75,6 +75,7 @@ if (!allowedStatuses.includes(payload.status)) {
 }
 
 
+
   /**
    * =====================================
    * 6️⃣ Validaciones básicas
@@ -156,6 +157,36 @@ if (!allowedStatuses.includes(payload.status)) {
    */
   const expiresAt = new Date()
   expiresAt.setFullYear(expiresAt.getFullYear() + 1)
+
+
+
+    /* ===============================
+       4️⃣ CREAR USUARIO EN AUTH
+       👉 ESTA ES LA PARTE QUE PREGUNTÁS
+    =============================== */
+
+    const { data: authUser, error: authError } =
+      await supabase.auth.admin.createUser({
+        email,
+        email_confirm: true
+      })
+
+    if (authError && authError.message !== 'User already exists') {
+      console.error('Error creando auth user:', authError)
+      throw authError
+    }
+
+    const userId =
+      authUser?.user?.id ??
+      (
+        await supabase.auth.admin.getUserByEmail(email)
+      ).data.user?.id
+
+    if (!userId) {
+      throw new Error('No se pudo obtener user_id')
+    }
+
+    console.log('Auth user ID:', userId)
 
   /**
    * =====================================
